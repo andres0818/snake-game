@@ -16,11 +16,14 @@ const Game = (): JSX.Element => {
   const [snake, setSnake] = useState<Coordinate[]>(SNAKE_INITIAL_POSITION);
   const [food, setFood] = useState<Coordinate>(FOOD_INITIAL_POSITION);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  useEffect(() => {
-    if (!isGameOver) {
-      // moveSnake
-    }
-  }, [isGameOver]);
+  // useEffect(() => {
+  //   if (!isGameOver) {
+  //     const intervalID = setInterval(() => {
+  //       moveSnake();
+  //     }, MOVE_INTERVAL);
+  //     return () => clearInterval(intervalID);
+  //   }
+  // }, [isGameOver]);
 
   const moveSnake = () => {
     const snakeHead = snake[0];
@@ -43,6 +46,9 @@ const Game = (): JSX.Element => {
       default:
         break;
     }
+    // check if eats food
+
+    setSnake([newHead, ...snake.slice(0, -1)]); //move snake
   };
 
   const handlerGesture = (event: GestureEventType) => {

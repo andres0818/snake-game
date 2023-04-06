@@ -1,0 +1,1 @@
+# Juego desarrollado con react native y typescript
