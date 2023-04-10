@@ -1,36 +1,54 @@
 import React, { useEffect, useState } from "react";
 import { PanGestureHandler } from "react-native-gesture-handler";
-import { SafeAreaView, StyleSheet, View } from "react-native";
+import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { Colors } from "../styles/colors";
 import Header from "./Header";
 import { Coordinate, Direction, GestureEventType } from "../types/types";
+import Snake from "./Snake";
+import { checkGameOver } from "../utils/checkGameOver";
+import Food from "./Food";
+import checkEastFoot from "../utils/checkEastFoot";
+import randomFoodPosition from "../utils/randomFoodPosition";
+import Score from "./Score";
 
 const SNAKE_INITIAL_POSITION = [{ x: 5, y: 5 }];
 const FOOD_INITIAL_POSITION = { x: 5, y: 20 };
-const GAME_BOUNDS = { xMin: 0, xMax: 35, yMin: 0, yMax: 63 };
+const GAME_BOUNDS = { xMin: 0, xMax: 34.5, yMin: 0, yMax: 69 };
 const MOVE_INTERVAL = 50;
 const SCORE_INCREMENT = 10;
+
+function getRandomFruitEmoji() {
+  const fruitEmojis = ["🍎", "🍊", "🍋", "🍇", "🍉", "🍓", "🍑", "🍍"];
+  const randomIndex = Math.floor(Math.random() * fruitEmojis.length);
+  return fruitEmojis[randomIndex];
+}
 
 const Game = (): JSX.Element => {
   const [direction, setDirection] = useState<Direction>(Direction.Right);
   const [snake, setSnake] = useState<Coordinate[]>(SNAKE_INITIAL_POSITION);
   const [food, setFood] = useState<Coordinate>(FOOD_INITIAL_POSITION);
+  const [score, setScore] = useState<number>(0);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  // useEffect(() => {
-  //   if (!isGameOver) {
-  //     const intervalID = setInterval(() => {
-  //       moveSnake();
-  //     }, MOVE_INTERVAL);
-  //     return () => clearInterval(intervalID);
-  //   }
-  // }, [isGameOver]);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [fruits, setFruits] = useState<string>(getRandomFruitEmoji());
+
+  useEffect(() => {
+    if (!isGameOver) {
+      const intervalID = setInterval(() => {
+        !isPaused && moveSnake();
+      }, MOVE_INTERVAL);
+      return () => clearInterval(intervalID);
+    }
+  }, [isGameOver, snake, isPaused]);
 
   const moveSnake = () => {
     const snakeHead = snake[0];
     const newHead = { ...snakeHead }; //create a copy of the snake
 
-    // game over
-
+    if (checkGameOver(snakeHead, GAME_BOUNDS)) {
+      setIsGameOver((prev) => !prev);
+      return;
+    }
     switch (direction) {
       case Direction.Up:
         newHead.y -= 1;
@@ -46,9 +64,15 @@ const Game = (): JSX.Element => {
       default:
         break;
     }
-    // check if eats food
 
-    setSnake([newHead, ...snake.slice(0, -1)]); //move snake
+    if (checkEastFoot(newHead, food, 1)) {
+      setFruits(getRandomFruitEmoji());
+      setFood(randomFoodPosition(GAME_BOUNDS.xMax, GAME_BOUNDS.yMax));
+      setSnake([newHead, ...snake]);
+      setScore(score + SCORE_INCREMENT);
+    } else {
+      setSnake([newHead, ...snake.slice(0, -1)]); //move snake
+    }
   };
 
   const handlerGesture = (event: GestureEventType) => {
@@ -70,14 +94,32 @@ const Game = (): JSX.Element => {
     }
   };
 
+  const reloadGame = () => {
+    setSnake(SNAKE_INITIAL_POSITION);
+    setFood(FOOD_INITIAL_POSITION);
+    setIsGameOver(false);
+    setScore(0);
+    setDirection(Direction.Right);
+    setIsPaused(false);
+  };
+
+  const pauseGame = () => {
+    setIsPaused(!isPaused);
+  };
+
   return (
     <PanGestureHandler onGestureEvent={handlerGesture}>
       <SafeAreaView style={styles.container}>
-        {/* <Header> 
-         </Header> */}
+        <Header
+          reloadGame={reloadGame}
+          isPaused={isPaused}
+          pauseGame={pauseGame}
+        >
+          <Score score={score} />
+        </Header>
         <View style={styles.boundries}>
-          <View style={styles.snake} />
-          <View style={styles.snake} />
+          <Snake snake={snake} />
+          <Food x={food.x} y={food.y} randomFood={fruits} />
         </View>
       </SafeAreaView>
     </PanGestureHandler>
@@ -98,10 +140,5 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     borderColor: Colors.primary,
     backgroundColor: Colors.background,
-  },
-  snake: {
-    width: 20,
-    height: 20,
-    backgroundColor: "red",
   },
 });
